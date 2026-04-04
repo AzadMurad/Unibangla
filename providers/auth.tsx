@@ -27,21 +27,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       username: username.trim(),
       password,
     };
+
     const res = await fetch(endpoints.token, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
+
     if (!res.ok) {
+      let message = "Authentication failed";
+
       try {
-        const data = (await res.json()) as any;
-        throw new Error(data?.detail || data?.error || "Authentication failed");
+        const data = await res.json();
+        message = data?.detail || data?.error || message;
       } catch {
-        const text = await res.text();
-        throw new Error(text || "Authentication failed");
+        // ignore invalid JSON
       }
+
+      throw new Error(message);
     }
+
     const data: { access: string; refresh: string } = await res.json();
+
     setAccessToken(data.access);
     setRefreshToken(data.refresh);
 
@@ -49,6 +56,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const meRes = await fetch(endpoints.me, {
         headers: { Authorization: `Bearer ${data.access}` },
       });
+
       if (meRes.ok) {
         const me: User = await meRes.json();
         setUser(me);
@@ -67,7 +75,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const value = useMemo(
-    () => ({ accessToken, refreshToken, user, signIn, signOut }),
+    () => ({
+      accessToken,
+      refreshToken,
+      user,
+      signIn,
+      signOut,
+    }),
     [accessToken, refreshToken, user]
   );
 
@@ -76,6 +90,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 export function useAuth() {
   const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
+  if (!ctx) {
+    throw new Error("useAuth must be used within AuthProvider");
+  }
   return ctx;
 }
