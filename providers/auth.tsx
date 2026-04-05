@@ -1,5 +1,11 @@
 import { endpoints } from "@/constants/api";
-import React, { createContext, useContext, useMemo, useState } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 
 type User = {
   id: number;
@@ -11,16 +17,46 @@ type AuthContextValue = {
   accessToken: string | null;
   refreshToken: string | null;
   user: User | null;
+  authReady: boolean;
   signIn: (username: string, password: string) => Promise<void>;
   signOut: () => void;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
+const ACCESS_TOKEN_KEY = "unibangla_access_token";
+const REFRESH_TOKEN_KEY = "unibangla_refresh_token";
+const USER_KEY = "unibangla_user";
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [refreshToken, setRefreshToken] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
+  const [authReady, setAuthReady] = useState(false);
+
+  useEffect(() => {
+    try {
+      const savedAccessToken = localStorage.getItem(ACCESS_TOKEN_KEY);
+      const savedRefreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
+      const savedUser = localStorage.getItem(USER_KEY);
+
+      if (savedAccessToken) {
+        setAccessToken(savedAccessToken);
+      }
+
+      if (savedRefreshToken) {
+        setRefreshToken(savedRefreshToken);
+      }
+
+      if (savedUser) {
+        setUser(JSON.parse(savedUser));
+      }
+    } catch (error) {
+      console.error("Failed to restore auth state:", error);
+    } finally {
+      setAuthReady(true);
+    }
+  }, []);
 
   const signIn = async (username: string, password: string) => {
     const payload = {
@@ -52,6 +88,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setAccessToken(data.access);
     setRefreshToken(data.refresh);
 
+    localStorage.setItem(ACCESS_TOKEN_KEY, data.access);
+    localStorage.setItem(REFRESH_TOKEN_KEY, data.refresh);
+
     try {
       const meRes = await fetch(endpoints.me, {
         headers: { Authorization: `Bearer ${data.access}` },
@@ -60,11 +99,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (meRes.ok) {
         const me: User = await meRes.json();
         setUser(me);
+        localStorage.setItem(USER_KEY, JSON.stringify(me));
       } else {
         setUser(null);
+        localStorage.removeItem(USER_KEY);
       }
     } catch {
       setUser(null);
+      localStorage.removeItem(USER_KEY);
     }
   };
 
@@ -72,6 +114,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setAccessToken(null);
     setRefreshToken(null);
     setUser(null);
+
+    localStorage.removeItem(ACCESS_TOKEN_KEY);
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
+    localStorage.removeItem(USER_KEY);
   };
 
   const value = useMemo(
@@ -79,10 +125,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       accessToken,
       refreshToken,
       user,
+      authReady,
       signIn,
       signOut,
     }),
-    [accessToken, refreshToken, user]
+    [accessToken, refreshToken, user, authReady]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
