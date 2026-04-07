@@ -1,10 +1,11 @@
 import { endpoints } from "@/constants/api";
 import { useAuth } from "@/providers/auth";
-import { Link } from "expo-router";
+import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
+  Image,
   Pressable,
   StyleSheet,
   Text,
@@ -15,6 +16,13 @@ type Product = {
   id: number | string;
   name: string;
   price: number;
+};
+
+const productImages: Record<string, any> = {
+  "Male Jeans": require("@/assets/images/products/male-blue.png"),
+  "Male Jeans Black": require("@/assets/images/products/male-black.png"),
+  "Female Jeans": require("@/assets/images/products/female-blue.png"),
+  "Female Jeans Dark": require("@/assets/images/products/female-darkblue.png"),
 };
 
 export default function App() {
@@ -57,7 +65,7 @@ export default function App() {
 
   if (loading) {
     return (
-      <View style={styles.container}>
+      <View style={styles.centered}>
         <Text>Loading products...</Text>
         <ActivityIndicator size="large" />
       </View>
@@ -66,7 +74,7 @@ export default function App() {
 
   if (error) {
     return (
-      <View style={styles.container}>
+      <View style={styles.centered}>
         <Text style={styles.error}>{error}</Text>
       </View>
     );
@@ -74,7 +82,7 @@ export default function App() {
 
   if (products.length === 0) {
     return (
-      <View style={styles.container}>
+      <View style={styles.centered}>
         <Text>No products found.</Text>
       </View>
     );
@@ -84,13 +92,11 @@ export default function App() {
     <View style={styles.container}>
       {!user ? (
         <View style={styles.topSection}>
-          <Link href="/login">
-            <Text style={styles.linkText}>Login to access protected features</Text>
-          </Link>
+          <Text style={styles.linkText}>Login to access protected features</Text>
         </View>
       ) : (
         <View style={styles.topSectionRight}>
-          <Pressable onPress={signOut} style={{ padding: 8 }}>
+          <Pressable onPress={signOut} style={styles.logoutButton}>
             <Text style={styles.linkText}>Logout</Text>
           </Pressable>
         </View>
@@ -100,19 +106,22 @@ export default function App() {
         data={products}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
-          <Link
-            href={{
-              pathname: "/product/[id]",
-              params: { id: String(item.id) },
-            }}
-            asChild
->
-            <Pressable style={styles.card}>
-              <Text style={styles.name}>{item.name}</Text>
-              <Text>Price: {item.price}</Text>
-              <Text style={styles.detailsText}>Tap to view details</Text>
-            </Pressable>
-          </Link>
+          <Pressable
+            style={styles.card}
+            onPress={() => router.push(`/product/${item.id}` as any)}
+          >
+            <Image
+              source={
+                productImages[item.name] ||
+                require("@/assets/images/products/male-blue.png")
+              }
+              style={styles.image}
+              resizeMode="cover"
+            />
+            <Text style={styles.name}>{item.name}</Text>
+            <Text style={styles.price}>Price: {item.price}</Text>
+            <Text style={styles.detailsText}>Tap to view details</Text>
+          </Pressable>
         )}
       />
     </View>
@@ -120,17 +129,51 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20 },
-  topSection: { marginBottom: 12 },
-  topSectionRight: { marginBottom: 12, alignItems: "flex-end" },
+  container: {
+    flex: 1,
+    padding: 20,
+  },
+  centered: {
+    flex: 1,
+    padding: 20,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  topSection: {
+    marginBottom: 12,
+  },
+  topSectionRight: {
+    marginBottom: 12,
+    alignItems: "flex-end",
+  },
+  logoutButton: {
+    padding: 8,
+  },
   card: {
     padding: 15,
-    backgroundColor: "#eee",
-    marginBottom: 10,
-    borderRadius: 8,
+    backgroundColor: "#f2f2f2",
+    marginBottom: 16,
+    borderRadius: 12,
   },
-  name: { fontSize: 18, fontWeight: "bold" },
-  linkText: { color: "#0a7ea4" },
+  image: {
+    width: "100%",
+    height: 220,
+    borderRadius: 10,
+    marginBottom: 12,
+  },
+  name: {
+    fontSize: 20,
+    fontWeight: "bold",
+    marginBottom: 4,
+  },
+  price: {
+    fontSize: 16,
+    marginBottom: 4,
+  },
+  linkText: {
+    color: "#0a7ea4",
+    fontSize: 14,
+  },
   detailsText: {
     marginTop: 8,
     color: "#666",
