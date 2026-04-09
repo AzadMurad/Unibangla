@@ -6,6 +6,7 @@ import "react-native-reanimated";
 
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { AuthProvider, useAuth } from "@/providers/auth";
+import { CartProvider } from "@/providers/cart";
 
 export const unstable_settings = {
   anchor: "(tabs)",
@@ -29,10 +30,6 @@ function Root({ children }: { children: React.ReactNode }) {
     return <Redirect href="/login" />;
   }
 
-  if (accessToken && isLoginRoute) {
-    return <Redirect href="/(tabs)" />;
-  }
-
   return <>{children}</>;
 }
 
@@ -41,17 +38,20 @@ export default function RootLayout() {
 
   return (
     <AuthProvider>
-      <Root>
-        <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-          <Stack>
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="product/[id]" options={{ title: "Product Details" }} />
-            <Stack.Screen name="modal" options={{ presentation: "modal", title: "Modal" }} />
-            <Stack.Screen name="login" options={{ title: "Login" }} />
-          </Stack>
-          <StatusBar style="auto" />
-        </ThemeProvider>
-      </Root>
+      <CartProvider>
+        <Root>
+          <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+            <Stack>
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack.Screen name="product/[id]" options={{ title: "Product Details" }} />
+              <Stack.Screen name="purchase" options={{ title: "Purchase" }} />
+              <Stack.Screen name="modal" options={{ presentation: "modal", title: "Modal" }} />
+              <Stack.Screen name="login" options={{ title: "Login" }} />
+            </Stack>
+            <StatusBar style="auto" />
+          </ThemeProvider>
+        </Root>
+      </CartProvider>
     </AuthProvider>
   );
 }

@@ -9,4 +9,5 @@ export const endpoints = {
   tokenRefresh: `${API_BASE_URL}/api/token/refresh/`,
   me: `${API_BASE_URL}/api/accounts/me/`,
   products: `${API_BASE_URL}/api/products/`,
+  ordersPurchase: `${API_BASE_URL}/api/orders/purchase/`,
 };
