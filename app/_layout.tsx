@@ -29,6 +29,10 @@ function Root({ children }: { children: React.ReactNode }) {
     return <Redirect href="/login" />;
   }
 
+  if (accessToken && isLoginRoute) {
+    return <Redirect href="/(tabs)" />;
+  }
+
   return <>{children}</>;
 }
 

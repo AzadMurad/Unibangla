@@ -36,11 +36,7 @@ export default function App() {
       try {
         setError(null);
 
-        const res = await fetch(endpoints.products, {
-          headers: accessToken
-            ? { Authorization: `Bearer ${accessToken}` }
-            : undefined,
-        });
+        const res = await fetch(endpoints.products);
 
         if (!res.ok) {
           throw new Error("Failed to load products");
@@ -116,7 +112,7 @@ export default function App() {
                 require("@/assets/images/products/male-blue.png")
               }
               style={styles.image}
-              resizeMode="cover"
+              resizeMode="contain"
             />
             <Text style={styles.name}>{item.name}</Text>
             <Text style={styles.price}>Price: {item.price}</Text>
@@ -157,9 +153,10 @@ const styles = StyleSheet.create({
   },
   image: {
     width: "100%",
-    height: 220,
+    height: 320,
     borderRadius: 10,
     marginBottom: 12,
+    backgroundColor: "#fff"
   },
   name: {
     fontSize: 20,

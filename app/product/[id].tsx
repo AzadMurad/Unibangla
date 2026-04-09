@@ -2,10 +2,11 @@ import { API_BASE_URL } from "@/constants/api";
 import { useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    StyleSheet,
-    Text,
-    View,
+  ActivityIndicator,
+  Image,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
 
 type Product = {
@@ -15,6 +16,13 @@ type Product = {
   gender_display: string;
   price: string | number;
   stock: number;
+};
+
+const productImages: Record<string, any> = {
+  "Male Jeans": require("@/assets/images/products/male-blue.png"),
+  "Male Jeans Black": require("@/assets/images/products/male-black.png"),
+  "Female Jeans": require("@/assets/images/products/female-blue.png"),
+  "Female Jeans Dark": require("@/assets/images/products/female-darkblue.png"),
 };
 
 export default function ProductDetailScreen() {
@@ -50,7 +58,7 @@ export default function ProductDetailScreen() {
 
   if (loading) {
     return (
-      <View style={styles.container}>
+      <View style={styles.centered}>
         <Text>Loading product details...</Text>
         <ActivityIndicator size="large" />
       </View>
@@ -59,7 +67,7 @@ export default function ProductDetailScreen() {
 
   if (error || !product) {
     return (
-      <View style={styles.container}>
+      <View style={styles.centered}>
         <Text style={styles.error}>{error || "Product not found"}</Text>
       </View>
     );
@@ -67,6 +75,15 @@ export default function ProductDetailScreen() {
 
   return (
     <View style={styles.container}>
+      <Image
+        source={
+          productImages[product.name] ||
+          require("@/assets/images/products/male-blue.png")
+        }
+        style={styles.image}
+        resizeMode="contain"
+      />
+
       <Text style={styles.title}>{product.name}</Text>
       <Text style={styles.row}>Product ID: {product.id}</Text>
       <Text style={styles.row}>Gender: {product.gender_display}</Text>
@@ -82,14 +99,27 @@ const styles = StyleSheet.create({
     padding: 20,
     justifyContent: "center",
   },
+  centered: {
+    flex: 1,
+    padding: 20,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  image: {
+    width: "100%",
+    height: 420,
+    borderRadius: 12,
+    marginBottom: 20,
+    backgroundColor: "#fff",
+  },
   title: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: "700",
     marginBottom: 20,
     textAlign: "center",
   },
   row: {
-    fontSize: 16,
+    fontSize: 18,
     marginBottom: 10,
   },
   error: {
