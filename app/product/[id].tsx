@@ -1,5 +1,6 @@
 import { API_BASE_URL } from "@/constants/api";
 import { useCart } from "@/providers/cart";
+import { useLanguage } from "@/providers/language";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
@@ -39,6 +40,7 @@ const palette = {
 };
 
 export default function ProductDetailScreen() {
+  const { t } = useLanguage();
   const { id, waist } = useLocalSearchParams<{ id: string; waist?: string }>();
   const monthlyLimit = 2;
   const { addItem, getItemQuantity, updateQuantity } = useCart();
@@ -55,7 +57,7 @@ export default function ProductDetailScreen() {
         const res = await fetch(`${API_BASE_URL}/api/products/${id}/`);
 
         if (!res.ok) {
-          throw new Error("Failed to load product details");
+          throw new Error(t("product.loading"));
         }
 
         const data = await res.json();
@@ -66,7 +68,7 @@ export default function ProductDetailScreen() {
           return maxQuantity > 0 ? Math.min(currentQuantity, maxQuantity) : 0;
         });
       } catch (err: any) {
-        setError(err?.message || "Could not load product details");
+        setError(err?.message || t("product.notFoundText"));
       } finally {
         setLoading(false);
       }
@@ -75,7 +77,7 @@ export default function ProductDetailScreen() {
     if (id) {
       loadProduct();
     }
-  }, [id]);
+  }, [id, t]);
 
   const cartQuantity = product ? getItemQuantity(product.id) : 0;
   const remainingAllowance = Math.max(0, monthlyLimit - cartQuantity);
@@ -113,7 +115,7 @@ export default function ProductDetailScreen() {
   if (loading) {
     return (
       <View style={styles.centered}>
-        <Text style={styles.centerTitle}>Loading product details...</Text>
+        <Text style={styles.centerTitle}>{t("product.loading")}</Text>
         <ActivityIndicator size="large" color={palette.accent} />
       </View>
     );
@@ -122,8 +124,8 @@ export default function ProductDetailScreen() {
   if (error || !product) {
     return (
       <View style={styles.centered}>
-        <Text style={styles.centerTitle}>Product not found</Text>
-        <Text style={styles.error}>{error || "This item could not be loaded."}</Text>
+        <Text style={styles.centerTitle}>{t("product.notFound")}</Text>
+        <Text style={styles.error}>{error || t("product.notFoundText")}</Text>
       </View>
     );
   }
@@ -135,8 +137,8 @@ export default function ProductDetailScreen() {
       setQuantity(Math.max(1, nextCartQuantity));
       setCartMessage(
         nextCartQuantity > 0
-          ? `${product.name} quantity reduced to ${nextCartQuantity}.`
-          : `${product.name} removed from cart.`
+          ? t("product.reducedQuantity", { name: product.name, count: nextCartQuantity })
+          : t("product.removedFromCart", { name: product.name })
       );
       return;
     }
@@ -162,11 +164,11 @@ export default function ProductDetailScreen() {
 
     const message =
       result.added > 0
-        ? `${result.added} ${product.name} added to cart.`
-        : `${product.name} is already at the 2-unit monthly cart limit.`;
+        ? t("product.addedToCart", { count: result.added, name: product.name })
+        : t("product.limitMessage", { name: product.name });
 
     setCartMessage(message);
-    Alert.alert("Added to cart", message);
+    Alert.alert(t("product.addedTitle"), message);
   };
 
   const handleBuyNow = () => {
@@ -182,11 +184,9 @@ export default function ProductDetailScreen() {
   return (
     <ScrollView contentContainerStyle={styles.contentContainer}>
       <View style={styles.heroCard}>
-        <Text style={styles.kicker}>Product Details</Text>
+        <Text style={styles.kicker}>{t("product.kicker")}</Text>
         <Text style={styles.heroTitle}>{product.name}</Text>
-        <Text style={styles.heroSubtitle}>
-          Refined presentation, quick actions, and a clear view of fit and availability.
-        </Text>
+        <Text style={styles.heroSubtitle}>{t("product.heroSubtitle")}</Text>
       </View>
 
       <View style={styles.imageShell}>
@@ -201,20 +201,20 @@ export default function ProductDetailScreen() {
       </View>
 
       <View style={styles.detailsCard}>
-        <Text style={styles.label}>Product ID</Text>
+        <Text style={styles.label}>{t("product.productId")}</Text>
         <Text style={styles.value}>{product.id}</Text>
-        <Text style={styles.label}>Selected waist</Text>
-        <Text style={styles.value}>{waist || "Not selected"}</Text>
-        <Text style={styles.label}>Gender</Text>
+        <Text style={styles.label}>{t("product.selectedWaist")}</Text>
+        <Text style={styles.value}>{waist || t("payment.notSelected")}</Text>
+        <Text style={styles.label}>{t("product.gender")}</Text>
         <Text style={styles.value}>{product.gender_display}</Text>
-        <Text style={styles.label}>Price</Text>
+        <Text style={styles.label}>{t("product.price")}</Text>
         <Text style={styles.value}>BDT {product.price}</Text>
-        <Text style={styles.label}>Availability</Text>
-        <Text style={styles.value}>{product.stock > 0 ? "Available" : "Out of Stock"}</Text>
+        <Text style={styles.label}>{t("product.availability")}</Text>
+        <Text style={styles.value}>{product.stock > 0 ? t("product.available") : t("product.outOfStock")}</Text>
       </View>
 
       <View style={styles.quantitySection}>
-        <Text style={styles.sectionTitle}>Quantity</Text>
+        <Text style={styles.sectionTitle}>{t("common.quantity")}</Text>
         <View style={styles.quantityControls}>
           <Pressable
             onPress={decreaseQuantity}
@@ -241,19 +241,20 @@ export default function ProductDetailScreen() {
             <Text style={styles.quantityButtonText}>+</Text>
           </Pressable>
         </View>
-        <Text style={styles.quantityHint}>
-          Maximum 2 units of this product can be ordered per month.
-        </Text>
+        <Text style={styles.quantityHint}>{t("product.quantityHint")}</Text>
         {cartQuantity > 0 && (
           <Text style={styles.quantityHint}>
-            Already in cart: {cartQuantity} unit{cartQuantity > 1 ? "s" : ""}.
+            {t("product.alreadyInCart", {
+              count: cartQuantity,
+              suffix: cartQuantity > 1 ? "s" : "",
+            })}
           </Text>
         )}
       </View>
 
       <View style={styles.waistBadge}>
-        <Text style={styles.waistBadgeLabel}>Selected Waist</Text>
-        <Text style={styles.waistBadgeValue}>{waist || "Not selected"}</Text>
+        <Text style={styles.waistBadgeLabel}>{t("product.selectedWaistCaps")}</Text>
+        <Text style={styles.waistBadgeValue}>{waist || t("payment.notSelected")}</Text>
       </View>
 
       <View style={styles.actionButtons}>
@@ -264,10 +265,10 @@ export default function ProductDetailScreen() {
         >
           <Text style={styles.secondaryButtonText}>
             {isOutOfStock
-              ? "Out of Stock"
+              ? t("product.outOfStock")
               : limitReachedInCart
-                ? "Monthly Limit Reached"
-                : "Add to Cart"}
+                ? t("product.monthlyLimitReached")
+                : t("home.addToCart")}
           </Text>
         </Pressable>
 
@@ -276,7 +277,7 @@ export default function ProductDetailScreen() {
           style={[styles.primaryButton, isAddDisabled && styles.disabledButton]}
           disabled={isAddDisabled}
         >
-          <Text style={styles.primaryButtonText}>Buy Now</Text>
+          <Text style={styles.primaryButtonText}>{t("home.buyNow")}</Text>
         </Pressable>
       </View>
 

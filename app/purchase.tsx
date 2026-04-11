@@ -1,6 +1,7 @@
 import { endpoints } from "@/constants/api";
-import { useAuth } from "@/providers/auth";
+import { PremiumPalette, PremiumRadius } from "@/constants/premium";
 import { useCart } from "@/providers/cart";
+import { useLanguage } from "@/providers/language";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
 import {
@@ -20,28 +21,17 @@ type Product = {
   price: string | number;
 };
 
-const palette = {
-  background: "#f3efe7",
-  surface: "#fffaf2",
-  ink: "#1a2233",
-  muted: "#6c7284",
-  accent: "#b38345",
-  line: "#e3d7c3",
-};
-
 export default function PurchaseScreen() {
+  const { t } = useLanguage();
   const { mode, id, quantity, waist } = useLocalSearchParams<{
     mode?: string;
     id?: string;
     quantity?: string;
     waist?: string;
   }>();
-  const { accessToken } = useAuth();
-  const { items, totalItems, totalPrice, removeItems } = useCart();
+  const { items, totalItems, totalPrice } = useCart();
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(mode === "single");
-  const [submitting, setSubmitting] = useState(false);
-  const [purchaseError, setPurchaseError] = useState<string | null>(null);
 
   useEffect(() => {
     if (mode !== "single" || !id) {
@@ -53,20 +43,20 @@ export default function PurchaseScreen() {
       try {
         const res = await fetch(`${endpoints.products}${id}/`);
         if (!res.ok) {
-          throw new Error("Failed to load purchase details");
+          throw new Error(t("purchase.loadingText"));
         }
 
         const data = await res.json();
         setProduct(data as Product);
       } catch (error: any) {
-        Alert.alert("Purchase", error?.message || "Unable to load product");
+        Alert.alert(t("purchase.kicker"), error?.message || t("purchase.productUnavailable"));
       } finally {
         setLoading(false);
       }
     };
 
     loadProduct();
-  }, [id, mode]);
+  }, [id, mode, t]);
 
   const singleQuantity = Math.max(1, Number(quantity || 1));
   const singleTotal = product ? Number(product.price) * singleQuantity : 0;
@@ -76,88 +66,28 @@ export default function PurchaseScreen() {
     return items.map((item) => `${item.name} x${item.quantity}`).join(", ");
   }, [items]);
 
-  const submitPurchase = async (productId: number, purchaseQuantity: number) => {
-    const res = await fetch(endpoints.ordersPurchase, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify({
-        product_id: productId,
-        quantity: purchaseQuantity,
-      }),
-    });
-
-    const data = await res.json().catch(() => ({}));
-
-    if (!res.ok) {
-      throw new Error(data?.error || data?.detail || "Purchase failed");
-    }
-
-    return data;
-  };
-
-  const handleConfirmPurchase = async () => {
-    if (!accessToken) {
-      setPurchaseError("Please log in again to complete your purchase.");
+  const handleContinueToPayment = () => {
+    if (isCartMode) {
+      router.push("/payment?mode=cart" as any);
       return;
     }
-
-    if (submitting) {
-      return;
-    }
-
-    setSubmitting(true);
-    setPurchaseError(null);
-
-    try {
-      if (isCartMode) {
-        if (items.length === 0) {
-          throw new Error("Your cart is empty.");
-        }
-
-        const purchasedIds: number[] = [];
-
-        for (const item of items) {
-          await submitPurchase(item.id, item.quantity);
-          purchasedIds.push(item.id);
-        }
-
-        removeItems(purchasedIds);
-        Alert.alert("Purchase complete", "Your cart order has been placed.", [
-          {
-            text: "OK",
-            onPress: () => router.replace("/(tabs)/cart"),
-          },
-        ]);
-        return;
-      }
 
       if (!product) {
-        throw new Error("Product details are unavailable.");
-      }
-
-      await submitPurchase(product.id, singleQuantity);
-      Alert.alert("Purchase complete", "Your order has been placed.", [
-        {
-          text: "OK",
-          onPress: () => router.replace("/(tabs)"),
-        },
-      ]);
-    } catch (error: any) {
-      setPurchaseError(error?.message || "Unable to complete purchase.");
-    } finally {
-      setSubmitting(false);
+      Alert.alert(t("nav.checkout"), t("purchase.productUnavailable"));
+      return;
     }
+
+    router.push(
+      `/payment?mode=single&id=${product.id}&quantity=${singleQuantity}&waist=${waist || ""}` as any
+    );
   };
 
   if (loading) {
     return (
       <View style={styles.centered}>
-        <Text style={styles.centerTitle}>Preparing checkout...</Text>
-        <Text style={styles.centerText}>Loading your purchase summary.</Text>
-        <ActivityIndicator size="large" color={palette.accent} />
+        <Text style={styles.centerTitle}>{t("purchase.loadingTitle")}</Text>
+        <Text style={styles.centerText}>{t("purchase.loadingText")}</Text>
+        <ActivityIndicator size="large" color={PremiumPalette.accent} />
       </View>
     );
   }
@@ -165,63 +95,46 @@ export default function PurchaseScreen() {
   return (
     <ScrollView contentContainerStyle={styles.contentContainer}>
       <View style={styles.heroCard}>
-        <Text style={styles.kicker}>Checkout</Text>
-        <Text style={styles.title}>Review the order before confirming payment.</Text>
-        <Text style={styles.subtitle}>
-          Clean, simple, and focused on the final purchase decision.
-        </Text>
+        <Text style={styles.kicker}>{t("purchase.kicker")}</Text>
+        <Text style={styles.title}>{t("purchase.title")}</Text>
+        <Text style={styles.subtitle}>{t("purchase.subtitle")}</Text>
       </View>
 
       {isCartMode ? (
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Cart purchase</Text>
-          <Text style={styles.rowLabel}>Items</Text>
+          <Text style={styles.cardTitle}>{t("purchase.cartPurchase")}</Text>
+          <Text style={styles.rowLabel}>{t("purchase.items")}</Text>
           <Text style={styles.rowValue}>{totalItems}</Text>
-          <Text style={styles.rowLabel}>Products</Text>
+          <Text style={styles.rowLabel}>{t("purchase.products")}</Text>
           <Text style={styles.rowValue}>{cartItemsLabel || "No items selected"}</Text>
-          <Text style={styles.rowLabel}>Total</Text>
+          <Text style={styles.rowLabel}>{t("purchase.total")}</Text>
           <Text style={styles.totalValue}>{totalPrice.toFixed(2)}</Text>
         </View>
       ) : (
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Single product purchase</Text>
-          <Text style={styles.rowLabel}>Product</Text>
+          <Text style={styles.cardTitle}>{t("purchase.singlePurchase")}</Text>
+          <Text style={styles.rowLabel}>{t("common.product")}</Text>
           <Text style={styles.rowValue}>{product?.name || "Unavailable"}</Text>
-          <Text style={styles.rowLabel}>Product ID</Text>
+          <Text style={styles.rowLabel}>{t("product.productId")}</Text>
           <Text style={styles.rowValue}>{product?.id || id}</Text>
-          <Text style={styles.rowLabel}>Selected waist</Text>
-          <Text style={styles.rowValue}>{waist || "Not selected"}</Text>
-          <Text style={styles.rowLabel}>Gender</Text>
+          <Text style={styles.rowLabel}>{t("product.selectedWaist")}</Text>
+          <Text style={styles.rowValue}>{waist || t("payment.notSelected")}</Text>
+          <Text style={styles.rowLabel}>{t("product.gender")}</Text>
           <Text style={styles.rowValue}>{product?.gender_display || "-"}</Text>
-          <Text style={styles.rowLabel}>Quantity</Text>
+          <Text style={styles.rowLabel}>{t("common.quantity")}</Text>
           <Text style={styles.rowValue}>{singleQuantity}</Text>
-          <Text style={styles.rowLabel}>Total</Text>
+          <Text style={styles.rowLabel}>{t("purchase.total")}</Text>
           <Text style={styles.totalValue}>{singleTotal.toFixed(2)}</Text>
         </View>
       )}
 
       <View style={styles.noticeCard}>
-        <Text style={styles.noticeTitle}>Purchase note</Text>
-        <Text style={styles.noticeText}>
-          Confirming here will submit the order to the backend purchase API. The app allows up to 2 units per product each month, not 2 units total across all products.
-        </Text>
+        <Text style={styles.noticeTitle}>{t("purchase.nextStep")}</Text>
+        <Text style={styles.noticeText}>{t("purchase.nextStepText")}</Text>
       </View>
 
-      {!!purchaseError && (
-        <View style={styles.errorCard}>
-          <Text style={styles.errorTitle}>Purchase error</Text>
-          <Text style={styles.errorText}>{purchaseError}</Text>
-        </View>
-      )}
-
-      <Pressable
-        onPress={handleConfirmPurchase}
-        style={[styles.confirmButton, submitting && styles.confirmButtonDisabled]}
-        disabled={submitting}
-      >
-        <Text style={styles.confirmButtonText}>
-          {submitting ? "Processing Purchase..." : "Confirm Purchase"}
-        </Text>
+      <Pressable onPress={handleContinueToPayment} style={styles.confirmButton}>
+        <Text style={styles.confirmButtonText}>{t("purchase.continueToPayment")}</Text>
       </Pressable>
     </ScrollView>
   );
@@ -231,7 +144,7 @@ const styles = StyleSheet.create({
   contentContainer: {
     padding: 20,
     paddingBottom: 32,
-    backgroundColor: palette.background,
+    backgroundColor: PremiumPalette.background,
     gap: 18,
   },
   centered: {
@@ -239,26 +152,26 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     padding: 24,
-    backgroundColor: palette.background,
+    backgroundColor: PremiumPalette.background,
   },
   centerTitle: {
-    color: palette.ink,
+    color: PremiumPalette.ink,
     fontSize: 26,
     fontWeight: "800",
     marginBottom: 8,
   },
   centerText: {
-    color: palette.muted,
+    color: PremiumPalette.muted,
     fontSize: 14,
     marginBottom: 14,
   },
   heroCard: {
-    backgroundColor: palette.ink,
-    borderRadius: 28,
+    backgroundColor: PremiumPalette.ink,
+    borderRadius: PremiumRadius.hero,
     padding: 24,
   },
   kicker: {
-    color: "#f0d5a2",
+    color: PremiumPalette.accentSoft,
     fontSize: 12,
     fontWeight: "800",
     letterSpacing: 1.2,
@@ -278,20 +191,20 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   card: {
-    backgroundColor: palette.surface,
-    borderRadius: 24,
+    backgroundColor: PremiumPalette.surface,
+    borderRadius: PremiumRadius.card,
     padding: 20,
     borderWidth: 1,
-    borderColor: palette.line,
+    borderColor: PremiumPalette.border,
   },
   cardTitle: {
-    color: palette.ink,
+    color: PremiumPalette.ink,
     fontSize: 20,
     fontWeight: "800",
     marginBottom: 14,
   },
   rowLabel: {
-    color: palette.muted,
+    color: PremiumPalette.muted,
     fontSize: 11,
     fontWeight: "700",
     textTransform: "uppercase",
@@ -299,24 +212,24 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   rowValue: {
-    color: palette.ink,
+    color: PremiumPalette.ink,
     fontSize: 17,
     fontWeight: "700",
     marginBottom: 12,
   },
   totalValue: {
-    color: palette.accent,
+    color: PremiumPalette.accent,
     fontSize: 30,
     fontWeight: "800",
     marginTop: 2,
   },
   noticeCard: {
-    backgroundColor: "#ece4d4",
-    borderRadius: 24,
+    backgroundColor: PremiumPalette.backgroundAlt,
+    borderRadius: PremiumRadius.card,
     padding: 18,
   },
   noticeTitle: {
-    color: palette.ink,
+    color: PremiumPalette.ink,
     fontSize: 16,
     fontWeight: "800",
     marginBottom: 8,
@@ -326,30 +239,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 21,
   },
-  errorCard: {
-    backgroundColor: "#f2dfde",
-    borderRadius: 24,
-    padding: 18,
-  },
-  errorTitle: {
-    color: "#9a3d44",
-    fontSize: 16,
-    fontWeight: "800",
-    marginBottom: 8,
-  },
-  errorText: {
-    color: "#9a3d44",
-    fontSize: 14,
-    lineHeight: 20,
-  },
   confirmButton: {
-    backgroundColor: palette.accent,
-    borderRadius: 18,
+    backgroundColor: PremiumPalette.accent,
+    borderRadius: PremiumRadius.button,
     paddingVertical: 17,
     alignItems: "center",
-  },
-  confirmButtonDisabled: {
-    opacity: 0.6,
   },
   confirmButtonText: {
     color: "#fff",

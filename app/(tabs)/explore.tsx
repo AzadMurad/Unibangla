@@ -1,6 +1,7 @@
 import { router } from "expo-router";
 import React from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useLanguage } from "@/providers/language";
 
 const palette = {
   background: "#f3efe7",
@@ -11,30 +12,29 @@ const palette = {
   line: "#e3d7c3",
 };
 
-const sections = [
-  {
-    title: "Editorial mood",
-    text: "A calmer, richer interface language turns browsing into something that feels more curated than technical.",
-  },
-  {
-    title: "Premium materials",
-    text: "Warm neutrals, deep ink surfaces, and brass accents create a look that feels elevated without becoming loud.",
-  },
-  {
-    title: "Faster decision-making",
-    text: "Users can move from discovery to fit selection to purchase with fewer jumps and more context on every screen.",
-  },
-];
-
 export default function ExploreScreen() {
+  const { t } = useLanguage();
+  const sections = [
+    {
+      title: t("explore.section1Title"),
+      text: t("explore.section1Text"),
+    },
+    {
+      title: t("explore.section2Title"),
+      text: t("explore.section2Text"),
+    },
+    {
+      title: t("explore.section3Title"),
+      text: t("explore.section3Text"),
+    },
+  ];
+
   return (
     <ScrollView contentContainerStyle={styles.contentContainer}>
       <View style={styles.heroCard}>
-        <Text style={styles.kicker}>Explore</Text>
-        <Text style={styles.title}>A more editorial view of the shopping experience.</Text>
-        <Text style={styles.subtitle}>
-          This space highlights the design direction behind the storefront and gives users another polished entry point into the catalog.
-        </Text>
+        <Text style={styles.kicker}>{t("explore.kicker")}</Text>
+        <Text style={styles.title}>{t("explore.title")}</Text>
+        <Text style={styles.subtitle}>{t("explore.subtitle")}</Text>
       </View>
 
       {sections.map((section) => (
@@ -45,10 +45,10 @@ export default function ExploreScreen() {
       ))}
 
       <View style={styles.featureCard}>
-        <Text style={styles.featureKicker}>Next move</Text>
-        <Text style={styles.featureTitle}>Go back to the collection and keep shopping.</Text>
+        <Text style={styles.featureKicker}>{t("explore.nextMove")}</Text>
+        <Text style={styles.featureTitle}>{t("explore.featureTitle")}</Text>
         <Pressable style={styles.button} onPress={() => router.push("/(tabs)")}>
-          <Text style={styles.buttonText}>Open Collection</Text>
+          <Text style={styles.buttonText}>{t("explore.openCollection")}</Text>
         </Pressable>
       </View>
     </ScrollView>

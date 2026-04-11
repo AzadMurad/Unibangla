@@ -1,5 +1,7 @@
 import { API_BASE_URL } from "@/constants/api";
+import { LanguageSwitcher } from "@/components/language-switcher";
 import { useAuth } from "@/providers/auth";
+import { useLanguage } from "@/providers/language";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import {
@@ -26,6 +28,7 @@ const palette = {
 
 export default function LoginScreen() {
   const { signIn } = useAuth();
+  const { t } = useLanguage();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -41,7 +44,7 @@ export default function LoginScreen() {
       await signIn(username, password);
       router.replace("/(tabs)");
     } catch (e: any) {
-      setError(e?.message || "Login failed");
+      setError(e?.message || t("login.failed"));
     } finally {
       setLoading(false);
     }
@@ -52,23 +55,22 @@ export default function LoginScreen() {
       <View style={styles.backgroundGlowTop} />
       <View style={styles.backgroundGlowBottom} />
       <View style={styles.container}>
+        <View style={styles.switcherWrap}>
+          <LanguageSwitcher compact />
+        </View>
         <View style={styles.heroCard}>
-          <Text style={styles.kicker}>Unibangla</Text>
-          <Text style={styles.title}>Tailored essentials with a premium feel.</Text>
-          <Text style={styles.subtitle}>
-            Sign in to access your product collection, cart, and checkout flow.
-          </Text>
+          <Text style={styles.kicker}>{t("app.name")}</Text>
+          <Text style={styles.title}>{t("login.title")}</Text>
+          <Text style={styles.subtitle}>{t("login.subtitle")}</Text>
           <View style={styles.apiPill}>
-            <Text style={styles.apiLabel}>Connected API</Text>
+            <Text style={styles.apiLabel}>{t("login.connectedApi")}</Text>
             <Text style={styles.apiValue}>{API_BASE_URL}</Text>
           </View>
         </View>
 
         <View style={styles.formCard}>
-          <Text style={styles.formTitle}>Welcome back</Text>
-          <Text style={styles.formText}>
-            Use your account details to continue into the store.
-          </Text>
+          <Text style={styles.formTitle}>{t("login.welcomeBack")}</Text>
+          <Text style={styles.formText}>{t("login.formText")}</Text>
 
           {!!error && (
             <View style={styles.errorCard}>
@@ -77,7 +79,7 @@ export default function LoginScreen() {
           )}
 
           <TextInput
-            placeholder="Username"
+            placeholder={t("login.username")}
             placeholderTextColor={palette.muted}
             autoCapitalize="none"
             autoCorrect={false}
@@ -87,7 +89,7 @@ export default function LoginScreen() {
           />
 
           <TextInput
-            placeholder="Password"
+            placeholder={t("login.password")}
             placeholderTextColor={palette.muted}
             secureTextEntry
             autoCapitalize="none"
@@ -105,7 +107,7 @@ export default function LoginScreen() {
             {loading ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={styles.buttonText}>Enter Store</Text>
+              <Text style={styles.buttonText}>{t("login.enterStore")}</Text>
             )}
           </Pressable>
         </View>
@@ -144,6 +146,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     padding: 22,
     gap: 18,
+  },
+  switcherWrap: {
+    alignItems: "flex-end",
   },
   heroCard: {
     backgroundColor: palette.ink,

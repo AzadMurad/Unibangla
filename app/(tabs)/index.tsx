@@ -1,6 +1,7 @@
 import { endpoints } from "@/constants/api";
 import { useAuth } from "@/providers/auth";
 import { useCart } from "@/providers/cart";
+import { useLanguage } from "@/providers/language";
 import { Redirect, router } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
@@ -41,6 +42,7 @@ const palette = {
 export default function App() {
   const { accessToken, user, signOut } = useAuth();
   const { addItem, getItemQuantity } = useCart();
+  const { t } = useLanguage();
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedWaists, setSelectedWaists] = useState<Record<string, string>>({});
   const [selectedQuantities, setSelectedQuantities] = useState<Record<string, number>>({});
@@ -87,7 +89,8 @@ export default function App() {
     return (
       <View style={styles.centered}>
         <Text style={styles.centerTitle}>Loading collection...</Text>
-        <Text style={styles.centerSubtitle}>Preparing the latest product lineup for you.</Text>
+        <Text style={styles.centerTitle}>{t("home.loadingTitle")}</Text>
+        <Text style={styles.centerSubtitle}>{t("home.loadingSubtitle")}</Text>
         <ActivityIndicator size="large" color={palette.accent} />
       </View>
     );
@@ -96,7 +99,7 @@ export default function App() {
   if (error) {
     return (
       <View style={styles.centered}>
-        <Text style={styles.centerTitle}>We could not load the products</Text>
+        <Text style={styles.centerTitle}>{t("home.errorTitle")}</Text>
         <Text style={styles.error}>{error}</Text>
       </View>
     );
@@ -105,8 +108,8 @@ export default function App() {
   if (products.length === 0) {
     return (
       <View style={styles.centered}>
-        <Text style={styles.centerTitle}>No products found</Text>
-        <Text style={styles.centerSubtitle}>The collection will appear here once items are available.</Text>
+        <Text style={styles.centerTitle}>{t("home.emptyTitle")}</Text>
+        <Text style={styles.centerSubtitle}>{t("home.emptySubtitle")}</Text>
       </View>
     );
   }
@@ -120,20 +123,18 @@ export default function App() {
       ListHeaderComponent={
         <View style={styles.headerSection}>
           <View style={styles.heroCard}>
-            <Text style={styles.kicker}>Curated Collection</Text>
-            <Text style={styles.heroTitle}>Denim essentials with a cleaner, premium presentation.</Text>
-            <Text style={styles.heroSubtitle}>
-              Choose your fit, set quantity, and move directly to cart or checkout.
-            </Text>
+            <Text style={styles.kicker}>{t("home.kicker")}</Text>
+            <Text style={styles.heroTitle}>{t("home.heroTitle")}</Text>
+            <Text style={styles.heroSubtitle}>{t("home.heroSubtitle")}</Text>
           </View>
 
           <View style={styles.topRow}>
             <View>
-              <Text style={styles.welcomeText}>Welcome, {user?.username || "Guest"}</Text>
-              <Text style={styles.helperText}>Every product allows up to 2 units per month.</Text>
+              <Text style={styles.welcomeText}>{t("home.welcome", { name: user?.username || "Guest" })}</Text>
+              <Text style={styles.helperText}>{t("home.helper")}</Text>
             </View>
             <Pressable onPress={signOut} style={styles.logoutButton}>
-              <Text style={styles.logoutText}>Logout</Text>
+              <Text style={styles.logoutText}>{t("common.logout")}</Text>
             </Pressable>
           </View>
         </View>
@@ -169,12 +170,12 @@ export default function App() {
 
           const message =
             result.added === selectedQuantity
-              ? `${selectedQuantity} ${item.name} added to cart.`
+              ? t("home.addedToCart", { quantity: selectedQuantity, name: item.name })
               : result.added > 0
-                ? `${result.added} ${item.name} added to cart. Monthly limit reached.`
-                : `${item.name} is already at the 2-unit monthly cart limit.`;
+                ? t("home.addedToCartPartial", { quantity: result.added, name: item.name })
+                : t("home.monthlyLimitReached", { name: item.name });
 
-          Alert.alert("Cart", message);
+          Alert.alert(t("cart.alertTitle"), message);
         };
 
         return (
@@ -195,17 +196,17 @@ export default function App() {
 
             <View style={styles.inlineMeta}>
               <View style={styles.metaBadge}>
-                <Text style={styles.metaLabel}>Item</Text>
+                <Text style={styles.metaLabel}>{t("home.item")}</Text>
                 <Text style={styles.metaValue}>#{item.id}</Text>
               </View>
               <View style={styles.metaBadge}>
-                <Text style={styles.metaLabel}>In cart</Text>
+                <Text style={styles.metaLabel}>{t("home.inCart")}</Text>
                 <Text style={styles.metaValue}>{cartQuantity}</Text>
               </View>
             </View>
 
             <View style={styles.quantitySection}>
-              <Text style={styles.controlLabel}>Quantity</Text>
+              <Text style={styles.controlLabel}>{t("common.quantity")}</Text>
               <View style={styles.quantityControls}>
                 <Pressable
                   onPress={() => updateSelectedQuantity(selectedQuantity - 1)}
@@ -230,12 +231,10 @@ export default function App() {
                   <Text style={styles.quantityButtonText}>+</Text>
                 </Pressable>
               </View>
-              <Text style={styles.quantityHint}>
-                Maximum 2 units of this product per month.
-              </Text>
+              <Text style={styles.quantityHint}>{t("home.quantityHint")}</Text>
             </View>
 
-            <Text style={styles.controlLabel}>Waist</Text>
+            <Text style={styles.controlLabel}>{t("common.waist")}</Text>
             <View style={styles.waistOptions}>
               {waistOptions.map((waist) => {
                 const isSelected = selectedWaist === waist;
@@ -277,12 +276,12 @@ export default function App() {
                 onPress={handleAddToCart}
                 disabled={!selectedWaist || remainingAllowance === 0}
               >
-                <Text style={styles.secondaryButtonText}>
-                  {!selectedWaist
-                    ? "Select waist"
+                  <Text style={styles.secondaryButtonText}>
+                    {!selectedWaist
+                    ? t("home.selectWaist")
                     : remainingAllowance === 0
-                      ? "Limit reached"
-                      : "Add to Cart"}
+                      ? t("home.limitReached")
+                      : t("home.addToCart")}
                 </Text>
               </Pressable>
               <Pressable
@@ -296,9 +295,9 @@ export default function App() {
                   )
                 }
                 disabled={!selectedWaist}
-              >
+                >
                 <Text style={styles.primaryButtonText}>
-                  {selectedWaist ? "Buy Now" : "Select waist"}
+                  {selectedWaist ? t("home.buyNow") : t("home.selectWaist")}
                 </Text>
               </Pressable>
             </View>
@@ -312,7 +311,7 @@ export default function App() {
               disabled={!selectedWaist}
             >
               <Text style={styles.detailsButtonText}>
-                {selectedWaist ? "Open Details" : "Select waist to continue"}
+                {selectedWaist ? t("home.openDetails") : t("home.selectWaistToContinue")}
               </Text>
             </Pressable>
           </View>

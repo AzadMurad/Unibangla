@@ -10,4 +10,6 @@ export const endpoints = {
   me: `${API_BASE_URL}/api/accounts/me/`,
   products: `${API_BASE_URL}/api/products/`,
   ordersPurchase: `${API_BASE_URL}/api/orders/purchase/`,
+  ordersHistory: `${API_BASE_URL}/api/orders/history/`,
+  ordersReturn: `${API_BASE_URL}/api/orders/return/`,
 };

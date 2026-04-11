@@ -1,4 +1,5 @@
 import { useCart } from "@/providers/cart";
+import { useLanguage } from "@/providers/language";
 import { router } from "expo-router";
 import React from "react";
 import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
@@ -13,6 +14,7 @@ const palette = {
 };
 
 export default function CartScreen() {
+  const { t } = useLanguage();
   const { items, totalItems, totalPrice, updateQuantity, removeItem, clearCart } =
     useCart();
 
@@ -20,11 +22,9 @@ export default function CartScreen() {
     return (
       <View style={styles.emptyScreen}>
         <View style={styles.emptyCard}>
-          <Text style={styles.emptyKicker}>Cart</Text>
-          <Text style={styles.emptyTitle}>Your cart is empty</Text>
-          <Text style={styles.emptyText}>
-            Add products from the collection to build a refined order before checkout.
-          </Text>
+          <Text style={styles.emptyKicker}>{t("cart.emptyKicker")}</Text>
+          <Text style={styles.emptyTitle}>{t("cart.emptyTitle")}</Text>
+          <Text style={styles.emptyText}>{t("cart.emptyText")}</Text>
         </View>
       </View>
     );
@@ -34,12 +34,12 @@ export default function CartScreen() {
     <View style={styles.container}>
       <View style={styles.heroCard}>
         <View>
-          <Text style={styles.kicker}>Shopping bag</Text>
-          <Text style={styles.heading}>A polished view of everything you selected.</Text>
-          <Text style={styles.subheading}>{totalItems} unit(s) ready for checkout</Text>
+          <Text style={styles.kicker}>{t("cart.kicker")}</Text>
+          <Text style={styles.heading}>{t("cart.heading")}</Text>
+          <Text style={styles.subheading}>{t("cart.subheading", { count: totalItems })}</Text>
         </View>
         <Pressable onPress={clearCart} style={styles.clearButton}>
-          <Text style={styles.clearButtonText}>Clear cart</Text>
+          <Text style={styles.clearButtonText}>{t("cart.clearCart")}</Text>
         </Pressable>
       </View>
 
@@ -52,26 +52,26 @@ export default function CartScreen() {
             <View style={styles.cardHeader}>
               <View style={styles.cardTitleBlock}>
                 <Text style={styles.itemName}>{item.name}</Text>
-                <Text style={styles.itemMeta}>Item #{item.id}</Text>
+                <Text style={styles.itemMeta}>{t("cart.itemNumber", { id: item.id })}</Text>
               </View>
               <Pressable onPress={() => removeItem(item.id)}>
-                <Text style={styles.removeText}>Remove</Text>
+                <Text style={styles.removeText}>{t("common.remove")}</Text>
               </Pressable>
             </View>
 
             <View style={styles.priceRow}>
               <View>
-                <Text style={styles.priceLabel}>Unit price</Text>
+                <Text style={styles.priceLabel}>{t("cart.unitPrice")}</Text>
                 <Text style={styles.priceValue}>{item.price}</Text>
               </View>
               <View>
-                <Text style={styles.priceLabel}>Subtotal</Text>
+                <Text style={styles.priceLabel}>{t("cart.subtotal")}</Text>
                 <Text style={styles.priceValue}>{(item.price * item.quantity).toFixed(2)}</Text>
               </View>
             </View>
 
             <View style={styles.quantityRow}>
-              <Text style={styles.quantityLabel}>Quantity</Text>
+              <Text style={styles.quantityLabel}>{t("common.quantity")}</Text>
               <View style={styles.quantityControls}>
                 <Pressable
                   onPress={() => updateQuantity(item.id, item.quantity - 1)}
@@ -97,21 +97,19 @@ export default function CartScreen() {
               </View>
             </View>
 
-            <Text style={styles.limitHint}>
-              Maximum 2 units of each product can be kept in the cart for this month.
-            </Text>
+            <Text style={styles.limitHint}>{t("cart.limitHint")}</Text>
           </View>
         )}
       />
 
       <View style={styles.summary}>
-        <Text style={styles.summaryLabel}>Current total</Text>
+        <Text style={styles.summaryLabel}>{t("cart.currentTotal")}</Text>
         <Text style={styles.summaryText}>{totalPrice.toFixed(2)}</Text>
         <Pressable
           onPress={() => router.push("/purchase?mode=cart" as any)}
           style={styles.purchaseButton}
         >
-          <Text style={styles.purchaseButtonText}>Proceed to Purchase</Text>
+          <Text style={styles.purchaseButtonText}>{t("cart.proceedToPurchase")}</Text>
         </Pressable>
       </View>
     </View>
