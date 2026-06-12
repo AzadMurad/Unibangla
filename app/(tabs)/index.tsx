@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   FlatList,
   Image,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -19,6 +20,12 @@ type Product = {
   id: number | string;
   name: string;
   price: number;
+};
+
+type ImageZoomState = {
+  active: boolean;
+  x: number;
+  y: number;
 };
 
 const waistOptions = ["30", "32", "34", "36", "38"];
@@ -46,6 +53,7 @@ export default function App() {
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedWaists, setSelectedWaists] = useState<Record<string, string>>({});
   const [selectedQuantities, setSelectedQuantities] = useState<Record<string, number>>({});
+  const [imageZoomStates, setImageZoomStates] = useState<Record<string, ImageZoomState>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -144,6 +152,11 @@ export default function App() {
         const selectedWaist = selectedWaists[itemKey];
         const cartQuantity = getItemQuantity(Number(item.id));
         const remainingAllowance = Math.max(0, 2 - cartQuantity);
+        const imageZoom = imageZoomStates[itemKey] ?? {
+          active: false,
+          x: 0.5,
+          y: 0.5,
+        };
         const selectedQuantity = Math.min(
           selectedQuantities[itemKey] ?? 1,
           Math.max(1, remainingAllowance || 1)
@@ -166,6 +179,7 @@ export default function App() {
             name: item.name,
             price: Number(item.price),
             quantity: selectedQuantity,
+            waist: selectedWaist,
           });
 
           const message =
@@ -178,17 +192,87 @@ export default function App() {
           Alert.alert(t("cart.alertTitle"), message);
         };
 
+        const setImageZoomState = (nextState: ImageZoomState) => {
+          setImageZoomStates((currentStates) => ({
+            ...currentStates,
+            [itemKey]: nextState,
+          }));
+        };
+
+        const imageHoverProps =
+          Platform.OS === "web"
+            ? {
+                onMouseEnter: () =>
+                  setImageZoomState({
+                    active: true,
+                    x: 0.5,
+                    y: 0.5,
+                  }),
+                onMouseLeave: () =>
+                  setImageZoomState({
+                    active: false,
+                    x: 0.5,
+                    y: 0.5,
+                  }),
+                onMouseMove: (event: any) => {
+                  const offsetX = event?.nativeEvent?.offsetX ?? 120;
+                  const offsetY = event?.nativeEvent?.offsetY ?? 140;
+                  const width = 240;
+                  const height = 280;
+
+                  setImageZoomState({
+                    active: true,
+                    x: Math.max(0, Math.min(1, offsetX / width)),
+                    y: Math.max(0, Math.min(1, offsetY / height)),
+                  });
+                },
+              }
+            : {};
+
         return (
           <View style={styles.card}>
-            <View style={styles.imageShell}>
-              <Image
-                source={
-                  productImages[item.name] ||
-                  require("@/assets/images/products/male-blue.png")
-                }
-                style={styles.image}
-                resizeMode="contain"
-              />
+            <View style={styles.mediaRow}>
+              <View style={styles.imageShell} {...imageHoverProps}>
+                <Image
+                  source={
+                    productImages[item.name] ||
+                    require("@/assets/images/products/male-blue.png")
+                  }
+                  style={[
+                    styles.image,
+                    imageZoom.active && {
+                      transform: [
+                        { scale: 1.45 },
+                        { translateX: (0.5 - imageZoom.x) * 90 },
+                        { translateY: (0.5 - imageZoom.y) * 90 },
+                      ],
+                    },
+                  ]}
+                  resizeMode="contain"
+                />
+              </View>
+
+              <View style={styles.infoNotice}>
+                <Text style={styles.infoNoticeKicker}>{t("home.item")}</Text>
+                <Text style={styles.infoNoticeTitle}>{item.name}</Text>
+
+                <View style={styles.infoNoticeBlock}>
+                  <Text style={styles.infoNoticeLabel}>Product ID</Text>
+                  <Text style={styles.infoNoticeValue}>#{item.id}</Text>
+                </View>
+
+                <View style={styles.infoNoticeBlock}>
+                  <Text style={styles.infoNoticeLabel}>Price</Text>
+                  <Text style={styles.infoNoticeValue}>BDT {item.price}</Text>
+                </View>
+
+                <View style={styles.infoNoticeBlock}>
+                  <Text style={styles.infoNoticeLabel}>Selected waist</Text>
+                  <Text style={styles.infoNoticeValue}>
+                    {selectedWaist || t("home.selectWaist")}
+                  </Text>
+                </View>
+              </View>
             </View>
 
             <Text style={styles.name}>{item.name}</Text>
@@ -422,15 +506,66 @@ const styles = StyleSheet.create({
     borderColor: palette.line,
     marginBottom: 16,
   },
+  mediaRow: {
+    flexDirection: "row",
+    alignItems: "stretch",
+    gap: 14,
+    marginBottom: 14,
+  },
   imageShell: {
+    flex: 1.55,
     backgroundColor: "#f5efe4",
     borderRadius: 22,
     padding: 10,
-    marginBottom: 14,
+    overflow: "hidden",
+    transitionDuration: "180ms",
+    cursor: "zoom-in",
   },
   image: {
     width: "100%",
     height: 280,
+    transitionDuration: "180ms",
+  },
+  infoNotice: {
+    flex: 1,
+    minWidth: 160,
+    backgroundColor: "#f1e7d6",
+    borderRadius: 22,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: palette.line,
+    justifyContent: "space-between",
+  },
+  infoNoticeKicker: {
+    color: palette.accent,
+    fontSize: 11,
+    fontWeight: "800",
+    textTransform: "uppercase",
+    letterSpacing: 0.9,
+    marginBottom: 6,
+  },
+  infoNoticeTitle: {
+    color: palette.ink,
+    fontSize: 18,
+    fontWeight: "800",
+    lineHeight: 24,
+    marginBottom: 12,
+  },
+  infoNoticeBlock: {
+    marginBottom: 10,
+  },
+  infoNoticeLabel: {
+    color: palette.muted,
+    fontSize: 10,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.7,
+    marginBottom: 3,
+  },
+  infoNoticeValue: {
+    color: palette.ink,
+    fontSize: 14,
+    fontWeight: "700",
   },
   name: {
     color: palette.ink,

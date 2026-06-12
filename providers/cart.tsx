@@ -11,6 +11,7 @@ type CartItem = {
   name: string;
   price: number;
   quantity: number;
+  waist?: string;
 };
 
 type AddCartItemInput = {
@@ -18,6 +19,7 @@ type AddCartItemInput = {
   name: string;
   price: number;
   quantity: number;
+  waist?: string;
 };
 
 type CartContextValue = {
@@ -67,7 +69,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }
   }, [cartReady, items]);
 
-  const addItem = ({ id, name, price, quantity }: AddCartItemInput) => {
+  const addItem = ({ id, name, price, quantity, waist }: AddCartItemInput) => {
     let result = { quantity: 0, added: 0 };
 
     setItems((currentItems) => {
@@ -85,7 +87,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
       if (existingItem) {
         return currentItems.map((item) =>
-          item.id === id ? { ...item, quantity: nextQuantity } : item
+          item.id === id ? { ...item, quantity: nextQuantity, waist: waist ?? item.waist } : item
         );
       }
 
@@ -93,7 +95,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         return currentItems;
       }
 
-      return [...currentItems, { id, name, price, quantity: nextQuantity }];
+      return [...currentItems, { id, name, price, quantity: nextQuantity, waist }];
     });
 
     return result;

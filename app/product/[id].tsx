@@ -43,7 +43,7 @@ export default function ProductDetailScreen() {
   const { t } = useLanguage();
   const { id, waist } = useLocalSearchParams<{ id: string; waist?: string }>();
   const monthlyLimit = 2;
-  const { addItem, getItemQuantity, updateQuantity } = useCart();
+  const { addItem, getItemQuantity } = useCart();
   const [product, setProduct] = useState<Product | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [loading, setLoading] = useState(true);
@@ -63,9 +63,8 @@ export default function ProductDetailScreen() {
         const data = await res.json();
         setProduct(data as Product);
         setQuantity((currentQuantity) => {
-          const stock = Math.max(0, Number((data as Product).stock) || 0);
-          const maxQuantity = Math.min(stock, monthlyLimit);
-          return maxQuantity > 0 ? Math.min(currentQuantity, maxQuantity) : 0;
+          const hasStock = Math.max(0, Number((data as Product).stock) || 0) > 0;
+          return hasStock ? Math.min(Math.max(1, currentQuantity), monthlyLimit) : 0;
         });
       } catch (err: any) {
         setError(err?.message || t("product.notFoundText"));
@@ -81,13 +80,13 @@ export default function ProductDetailScreen() {
 
   const cartQuantity = product ? getItemQuantity(product.id) : 0;
   const remainingAllowance = Math.max(0, monthlyLimit - cartQuantity);
-  const maxQuantity = product
-    ? Math.min(Math.max(0, product.stock || 0), remainingAllowance)
-    : 0;
+  const maxSelectableQuantity = product && product.stock > 0 ? monthlyLimit : 0;
   const isOutOfStock = product ? product.stock <= 0 : false;
   const limitReachedInCart = !!product && !isOutOfStock && remainingAllowance === 0;
-  const isAddDisabled = !product || isOutOfStock || limitReachedInCart || quantity <= 0;
-  const canDecrease = quantity > 1 || cartQuantity > 0;
+  const isAddDisabled = !product || isOutOfStock || remainingAllowance === 0 || quantity <= 0;
+  const isBuyDisabled = !product || isOutOfStock || quantity <= 0;
+  const canDecrease = quantity > 1;
+  const canIncrease = quantity < maxSelectableQuantity;
 
   useEffect(() => {
     if (!product) {
@@ -99,18 +98,13 @@ export default function ProductDetailScreen() {
       return;
     }
 
-    if (limitReachedInCart) {
-      setQuantity(Math.max(1, cartQuantity));
-      return;
-    }
-
     setQuantity((currentQuantity) => {
       if (currentQuantity < 1) {
         return 1;
       }
-      return Math.min(currentQuantity, maxQuantity);
+      return Math.min(currentQuantity, maxSelectableQuantity);
     });
-  }, [cartQuantity, isOutOfStock, limitReachedInCart, maxQuantity, product]);
+  }, [isOutOfStock, maxSelectableQuantity, product]);
 
   if (loading) {
     return (
@@ -131,23 +125,11 @@ export default function ProductDetailScreen() {
   }
 
   const decreaseQuantity = () => {
-    if (product && cartQuantity > 0 && limitReachedInCart) {
-      const nextCartQuantity = cartQuantity - 1;
-      updateQuantity(product.id, nextCartQuantity);
-      setQuantity(Math.max(1, nextCartQuantity));
-      setCartMessage(
-        nextCartQuantity > 0
-          ? t("product.reducedQuantity", { name: product.name, count: nextCartQuantity })
-          : t("product.removedFromCart", { name: product.name })
-      );
-      return;
-    }
-
     setQuantity((currentQuantity) => Math.max(1, currentQuantity - 1));
   };
 
   const increaseQuantity = () => {
-    setQuantity((currentQuantity) => Math.min(maxQuantity, currentQuantity + 1));
+    setQuantity((currentQuantity) => Math.min(maxSelectableQuantity, currentQuantity + 1));
   };
 
   const handleAddToCart = () => {
@@ -160,6 +142,7 @@ export default function ProductDetailScreen() {
       name: product.name,
       price: Number(product.price),
       quantity,
+      waist: waist || undefined,
     });
 
     const message =
@@ -233,10 +216,10 @@ export default function ProductDetailScreen() {
             onPress={increaseQuantity}
             style={[
               styles.quantityButton,
-              (quantity >= maxQuantity || isAddDisabled) &&
+              (!canIncrease || isOutOfStock) &&
                 styles.quantityButtonDisabled,
             ]}
-            disabled={quantity >= maxQuantity || isAddDisabled}
+            disabled={!canIncrease || isOutOfStock}
           >
             <Text style={styles.quantityButtonText}>+</Text>
           </Pressable>
@@ -274,8 +257,8 @@ export default function ProductDetailScreen() {
 
         <Pressable
           onPress={handleBuyNow}
-          style={[styles.primaryButton, isAddDisabled && styles.disabledButton]}
-          disabled={isAddDisabled}
+          style={[styles.primaryButton, isBuyDisabled && styles.disabledButton]}
+          disabled={isBuyDisabled}
         >
           <Text style={styles.primaryButtonText}>{t("home.buyNow")}</Text>
         </Pressable>

@@ -4,7 +4,7 @@ import { useAuth } from "@/providers/auth";
 import { useCart } from "@/providers/cart";
 import { useLanguage } from "@/providers/language";
 import { router, useLocalSearchParams } from "expo-router";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -137,10 +137,6 @@ export default function PaymentScreen() {
   const singleQuantity = Math.max(1, Number(quantity || 1));
   const singleTotal = product ? Number(product.price) * singleQuantity : 0;
   const isCartMode = mode === "cart";
-
-  const cartItemsLabel = useMemo(() => {
-    return items.map((item) => `${item.name} x${item.quantity}`).join(", ");
-  }, [items]);
 
   const getPaymentMethodLabel = (methodId: string) => {
     switch (methodId) {
@@ -369,7 +365,26 @@ export default function PaymentScreen() {
             <Text style={styles.rowLabel}>{t("purchase.items")}</Text>
             <Text style={styles.rowValue}>{totalItems}</Text>
             <Text style={styles.rowLabel}>{t("purchase.products")}</Text>
-            <Text style={styles.rowValue}>{cartItemsLabel || "No items selected"}</Text>
+            <View style={styles.cartItemsList}>
+              {items.length > 0 ? (
+                items.map((item) => (
+                  <View key={item.id} style={styles.cartItemRow}>
+                    <View style={styles.cartItemCopy}>
+                      <Text style={styles.cartItemName}>{item.name}</Text>
+                      <Text style={styles.cartItemMeta}>
+                        {t("common.quantity")}: {item.quantity}
+                        {item.waist ? ` • ${t("product.selectedWaist")}: ${item.waist}` : ""}
+                      </Text>
+                    </View>
+                    <Text style={styles.cartItemPrice}>
+                      {(Number(item.price) * item.quantity).toFixed(2)}
+                    </Text>
+                  </View>
+                ))
+              ) : (
+                <Text style={styles.rowValue}>No items selected</Text>
+              )}
+            </View>
             <Text style={styles.rowLabel}>{t("purchase.total")}</Text>
             <Text style={styles.totalValue}>{totalPrice.toFixed(2)}</Text>
           </>
@@ -591,6 +606,38 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: "700",
     marginBottom: 12,
+  },
+  cartItemsList: {
+    gap: 10,
+    marginBottom: 12,
+  },
+  cartItemRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 12,
+    padding: 14,
+    borderRadius: 16,
+    backgroundColor: PremiumPalette.backgroundAlt,
+  },
+  cartItemCopy: {
+    flex: 1,
+  },
+  cartItemName: {
+    color: PremiumPalette.ink,
+    fontSize: 16,
+    fontWeight: "800",
+    marginBottom: 4,
+  },
+  cartItemMeta: {
+    color: PremiumPalette.muted,
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  cartItemPrice: {
+    color: PremiumPalette.accent,
+    fontSize: 16,
+    fontWeight: "800",
   },
   totalValue: {
     color: PremiumPalette.accent,

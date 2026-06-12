@@ -1,8 +1,9 @@
 import { useCart } from "@/providers/cart";
 import { useLanguage } from "@/providers/language";
+import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { router } from "expo-router";
 import React from "react";
-import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 const palette = {
   background: "#f3efe7",
@@ -15,6 +16,7 @@ const palette = {
 
 export default function CartScreen() {
   const { t } = useLanguage();
+  const tabBarHeight = useBottomTabBarHeight();
   const { items, totalItems, totalPrice, updateQuantity, removeItem, clearCart } =
     useCart();
 
@@ -31,7 +33,10 @@ export default function CartScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={[styles.contentContainer, { paddingBottom: tabBarHeight + 16 }]}
+    >
       <View style={styles.heroCard}>
         <View>
           <Text style={styles.kicker}>{t("cart.kicker")}</Text>
@@ -43,64 +48,69 @@ export default function CartScreen() {
         </Pressable>
       </View>
 
-      <FlatList
-        data={items}
-        keyExtractor={(item) => item.id.toString()}
-        contentContainerStyle={styles.listContent}
-        renderItem={({ item }) => (
-          <View style={styles.card}>
-            <View style={styles.cardHeader}>
-              <View style={styles.cardTitleBlock}>
-                <Text style={styles.itemName}>{item.name}</Text>
-                <Text style={styles.itemMeta}>{t("cart.itemNumber", { id: item.id })}</Text>
-              </View>
-              <Pressable onPress={() => removeItem(item.id)}>
-                <Text style={styles.removeText}>{t("common.remove")}</Text>
-              </Pressable>
-            </View>
-
-            <View style={styles.priceRow}>
-              <View>
-                <Text style={styles.priceLabel}>{t("cart.unitPrice")}</Text>
-                <Text style={styles.priceValue}>{item.price}</Text>
-              </View>
-              <View>
-                <Text style={styles.priceLabel}>{t("cart.subtotal")}</Text>
-                <Text style={styles.priceValue}>{(item.price * item.quantity).toFixed(2)}</Text>
-              </View>
-            </View>
-
-            <View style={styles.quantityRow}>
-              <Text style={styles.quantityLabel}>{t("common.quantity")}</Text>
-              <View style={styles.quantityControls}>
-                <Pressable
-                  onPress={() => updateQuantity(item.id, item.quantity - 1)}
-                  style={[
-                    styles.quantityButton,
-                    item.quantity <= 1 && styles.quantityButtonDisabled,
-                  ]}
-                  disabled={item.quantity <= 1}
-                >
-                  <Text style={styles.quantityButtonText}>-</Text>
-                </Pressable>
-                <Text style={styles.quantityValue}>{item.quantity}</Text>
-                <Pressable
-                  onPress={() => updateQuantity(item.id, item.quantity + 1)}
-                  style={[
-                    styles.quantityButton,
-                    item.quantity >= 2 && styles.quantityButtonDisabled,
-                  ]}
-                  disabled={item.quantity >= 2}
-                >
-                  <Text style={styles.quantityButtonText}>+</Text>
+      <View style={styles.itemsPanel}>
+        <Text style={styles.itemsPanelTitle}>{t("purchase.products")}</Text>
+        <View style={styles.itemsPanelList}>
+          {items.map((item) => (
+            <View key={item.id} style={styles.card}>
+              <View style={styles.cardHeader}>
+                <View style={styles.cardTitleBlock}>
+                  <Text style={styles.itemName}>{item.name}</Text>
+                  <Text style={styles.itemMeta}>{t("cart.itemNumber", { id: item.id })}</Text>
+                  {!!item.waist && (
+                    <Text style={styles.itemWaist}>
+                      {t("product.selectedWaist")}: {item.waist}
+                    </Text>
+                  )}
+                </View>
+                <Pressable onPress={() => removeItem(item.id)}>
+                  <Text style={styles.removeText}>{t("common.remove")}</Text>
                 </Pressable>
               </View>
-            </View>
 
-            <Text style={styles.limitHint}>{t("cart.limitHint")}</Text>
-          </View>
-        )}
-      />
+              <View style={styles.priceRow}>
+                <View style={styles.infoBox}>
+                  <Text style={styles.priceLabel}>{t("cart.unitPrice")}</Text>
+                  <Text style={styles.priceValue}>{item.price}</Text>
+                </View>
+                <View style={styles.infoBox}>
+                  <Text style={styles.priceLabel}>{t("cart.subtotal")}</Text>
+                  <Text style={styles.priceValue}>{(item.price * item.quantity).toFixed(2)}</Text>
+                </View>
+              </View>
+
+              <View style={styles.quantityRow}>
+                <Text style={styles.quantityLabel}>{t("common.quantity")}</Text>
+                <View style={styles.quantityControls}>
+                  <Pressable
+                    onPress={() => updateQuantity(item.id, item.quantity - 1)}
+                    style={[
+                      styles.quantityButton,
+                      item.quantity <= 1 && styles.quantityButtonDisabled,
+                    ]}
+                    disabled={item.quantity <= 1}
+                  >
+                    <Text style={styles.quantityButtonText}>-</Text>
+                  </Pressable>
+                  <Text style={styles.quantityValue}>{item.quantity}</Text>
+                  <Pressable
+                    onPress={() => updateQuantity(item.id, item.quantity + 1)}
+                    style={[
+                      styles.quantityButton,
+                      item.quantity >= 2 && styles.quantityButtonDisabled,
+                    ]}
+                    disabled={item.quantity >= 2}
+                  >
+                    <Text style={styles.quantityButtonText}>+</Text>
+                  </Pressable>
+                </View>
+              </View>
+
+              <Text style={styles.limitHint}>{t("cart.limitHint")}</Text>
+            </View>
+          ))}
+        </View>
+      </View>
 
       <View style={styles.summary}>
         <Text style={styles.summaryLabel}>{t("cart.currentTotal")}</Text>
@@ -112,15 +122,18 @@ export default function CartScreen() {
           <Text style={styles.purchaseButtonText}>{t("cart.proceedToPurchase")}</Text>
         </Pressable>
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
     backgroundColor: palette.background,
+  },
+  contentContainer: {
+    padding: 20,
+    gap: 14,
   },
   emptyScreen: {
     flex: 1,
@@ -157,9 +170,10 @@ const styles = StyleSheet.create({
   heroCard: {
     backgroundColor: palette.ink,
     borderRadius: 28,
-    padding: 22,
-    marginBottom: 16,
-    gap: 14,
+    paddingVertical: 18,
+    paddingHorizontal: 22,
+    marginBottom: 14,
+    gap: 10,
   },
   kicker: {
     color: "#f0d5a2",
@@ -171,34 +185,46 @@ const styles = StyleSheet.create({
   },
   heading: {
     color: "#fff",
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: "800",
-    lineHeight: 34,
+    lineHeight: 30,
   },
   subheading: {
     color: "#cbd4e5",
-    fontSize: 14,
-    marginTop: 8,
+    fontSize: 13,
+    marginTop: 6,
   },
   clearButton: {
     alignSelf: "flex-start",
     backgroundColor: "#2a3449",
     borderRadius: 16,
-    paddingVertical: 10,
+    paddingVertical: 8,
     paddingHorizontal: 14,
   },
   clearButtonText: {
     color: "#fff",
     fontWeight: "700",
   },
-  listContent: {
-    paddingBottom: 20,
+  itemsPanel: {
+    backgroundColor: palette.surface,
+    borderRadius: 24,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: palette.line,
+  },
+  itemsPanelTitle: {
+    color: palette.ink,
+    fontSize: 18,
+    fontWeight: "800",
+    marginBottom: 12,
+  },
+  itemsPanelList: {
     gap: 14,
   },
   card: {
-    backgroundColor: palette.surface,
+    backgroundColor: "#f8f2e8",
     borderRadius: 22,
-    padding: 18,
+    padding: 20,
     borderWidth: 1,
     borderColor: palette.line,
   },
@@ -206,7 +232,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    marginBottom: 14,
+    marginBottom: 18,
     gap: 12,
   },
   cardTitleBlock: {
@@ -222,6 +248,12 @@ const styles = StyleSheet.create({
     color: palette.muted,
     fontSize: 13,
   },
+  itemWaist: {
+    color: palette.accent,
+    fontSize: 13,
+    fontWeight: "700",
+    marginTop: 6,
+  },
   removeText: {
     color: "#9a3d44",
     fontWeight: "700",
@@ -229,7 +261,14 @@ const styles = StyleSheet.create({
   priceRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 14,
+    marginBottom: 20,
+    gap: 12,
+  },
+  infoBox: {
+    flex: 1,
+    backgroundColor: palette.surface,
+    borderRadius: 16,
+    padding: 14,
   },
   priceLabel: {
     color: palette.muted,
@@ -248,7 +287,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginTop: 4,
+    marginTop: 10,
   },
   quantityLabel: {
     color: palette.ink,
@@ -285,7 +324,7 @@ const styles = StyleSheet.create({
     color: palette.ink,
   },
   limitHint: {
-    marginTop: 12,
+    marginTop: 18,
     color: palette.muted,
     fontSize: 12,
     lineHeight: 18,
@@ -293,7 +332,7 @@ const styles = StyleSheet.create({
   summary: {
     backgroundColor: palette.surface,
     borderRadius: 24,
-    padding: 18,
+    padding: 14,
     borderWidth: 1,
     borderColor: palette.line,
   },
@@ -307,14 +346,14 @@ const styles = StyleSheet.create({
   },
   summaryText: {
     color: palette.ink,
-    fontSize: 30,
+    fontSize: 22,
     fontWeight: "800",
-    marginBottom: 14,
+    marginBottom: 10,
   },
   purchaseButton: {
     backgroundColor: palette.accent,
     borderRadius: 16,
-    paddingVertical: 15,
+    paddingVertical: 12,
     alignItems: "center",
   },
   purchaseButtonText: {
